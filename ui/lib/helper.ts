@@ -12,9 +12,11 @@ export const baseUrl = process.env.AUTH_URL || "http://localhost:3000";
 const rawApiBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api/v1";
 
-export const apiBaseUrl = rawApiBaseUrl.endsWith("/api/v1")
-  ? rawApiBaseUrl
-  : `${rawApiBaseUrl.replace(/\/$/, "")}/api/v1`;
+const normalizedApiBaseUrl = rawApiBaseUrl.replace(/\/+$/, "");
+
+export const apiBaseUrl = normalizedApiBaseUrl.endsWith("/api/v1")
+  ? normalizedApiBaseUrl
+  : `${normalizedApiBaseUrl}/api/v1`;
 
 /**
  * Extracts a form value from a FormData object
