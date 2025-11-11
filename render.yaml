@@ -237,13 +237,15 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
       - key: AUTH_TRUST_HOST
         value: "true"
+      - key: AUTH_SECRET
+        generateValue: true
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
       - key: NODE_ENV
         value: production
       - key: PORT
         value: "3000"
-    
+
     healthCheckPath: /
 
   # Redis (Message broker and cache for Celery)
