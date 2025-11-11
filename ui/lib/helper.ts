@@ -9,7 +9,12 @@ import { useToast } from "@/components/ui";
 import { AuthSocialProvider, MetaDataProps, PermissionInfo } from "@/types";
 
 export const baseUrl = process.env.AUTH_URL || "http://localhost:3000";
-export const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+const rawApiBaseUrl =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api/v1";
+
+export const apiBaseUrl = rawApiBaseUrl.endsWith("/api/v1")
+  ? rawApiBaseUrl
+  : `${rawApiBaseUrl.replace(/\/$/, "")}/api/v1`;
 
 /**
  * Extracts a form value from a FormData object
