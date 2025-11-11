@@ -220,6 +220,31 @@ services:
       - key: AWS_DEFAULT_REGION
         value: us-east-1
 
+  # Next.js UI (Frontend)
+  - type: web
+    name: prowler-ui
+    runtime: docker
+    dockerfilePath: ./ui/Dockerfile
+    dockerContext: ./ui
+    dockerTarget: prod
+    plan: pro
+    region: virginia
+    envVars:
+      # Next.js Configuration
+      - key: NEXT_PUBLIC_API_BASE_URL
+        fromService:
+          type: web
+          name: prowler-api
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+    
+    healthCheckPath: /
+
   # Redis (Message broker and cache for Celery)
   - type: redis
     name: prowler-redis
