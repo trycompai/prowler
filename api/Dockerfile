@@ -82,8 +82,9 @@ ENV AWS_ACCESS_KEY_ID=dummy_build_key \
     AWS_DEFAULT_REGION=us-east-1
 
 # Add `--no-root` to avoid installing the current project as a package
-RUN poetry install --no-root && \
-    rm -rf ~/.cache/pip
+# Skip dev dependencies in production to reduce memory usage
+RUN poetry install --no-root --without dev && \
+    rm -rf ~/.cache/pip ~/.cache/pypoetry
 
 RUN poetry run python "$(poetry env info --path)/src/prowler/prowler/providers/m365/lib/powershell/m365_powershell.py"
 
