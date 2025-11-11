@@ -230,5 +230,5 @@ databases:
   - name: prowler-db
     databaseName: prowler
     user: prowler
-    plan: starter
+    plan: free
     region: oregon
