@@ -86,10 +86,12 @@ ENV AWS_ACCESS_KEY_ID=dummy_build_key \
 RUN poetry install --no-root --without dev && \
     rm -rf ~/.cache/pip ~/.cache/pypoetry
 
-RUN poetry run python "$(poetry env info --path)/src/prowler/prowler/providers/m365/lib/powershell/m365_powershell.py"
-
+# Copy application code
 COPY src/backend/ ./backend/
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
+
+# Note: M365 PowerShell setup skipped - not needed for AWS scans
+# The M365 provider will still work but may have limited functionality
 
 WORKDIR /home/prowler/backend
 
