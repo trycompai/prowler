@@ -1,0 +1,234 @@
+services:
+  # Django REST API
+  - type: web
+    name: prowler-api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    plan: starter
+    region: oregon
+    envVars:
+      # Django Configuration
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.django.production
+      - key: DJANGO_PORT
+        value: "8080"
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "*"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DJANGO_SECRETS_ENCRYPTION_KEY
+        generateValue: true
+
+      # Database Configuration (admin user for migrations)
+      - key: POSTGRES_ADMIN_USER
+        fromDatabase:
+          name: prowler-db
+          property: user
+      - key: POSTGRES_ADMIN_PASSWORD
+        fromDatabase:
+          name: prowler-db
+          property: password
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: prowler-db
+          property: database
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: prowler-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: prowler-db
+          property: port
+
+      # Database Configuration (regular user - same as admin for now)
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: prowler-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: prowler-db
+          property: password
+
+      # Redis/Valkey Configuration
+      - key: VALKEY_HOST
+        fromService:
+          type: redis
+          name: prowler-redis
+          property: host
+      - key: VALKEY_PORT
+        fromService:
+          type: redis
+          name: prowler-redis
+          property: port
+      - key: VALKEY_DB
+        value: "0"
+
+      # Dummy AWS credentials for build time (prevents import errors)
+      - key: AWS_ACCESS_KEY_ID
+        value: dummy_build_key
+      - key: AWS_SECRET_ACCESS_KEY
+        value: dummy_build_secret
+      - key: AWS_DEFAULT_REGION
+        value: us-east-1
+
+    healthCheckPath: /api/v1/docs
+
+  # Celery Worker (processes scan jobs)
+  - type: worker
+    name: prowler-worker
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    dockerCommand: /home/prowler/docker-entrypoint.sh worker
+    plan: starter
+    region: oregon
+    envVars:
+      # Django Configuration
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.django.production
+      - key: SECRET_KEY
+        sync: false
+      - key: DJANGO_SECRETS_ENCRYPTION_KEY
+        sync: false
+
+      # Database Configuration
+      - key: POSTGRES_ADMIN_USER
+        fromDatabase:
+          name: prowler-db
+          property: user
+      - key: POSTGRES_ADMIN_PASSWORD
+        fromDatabase:
+          name: prowler-db
+          property: password
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: prowler-db
+          property: database
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: prowler-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: prowler-db
+          property: port
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: prowler-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: prowler-db
+          property: password
+
+      # Redis Configuration
+      - key: VALKEY_HOST
+        fromService:
+          type: redis
+          name: prowler-redis
+          property: host
+      - key: VALKEY_PORT
+        fromService:
+          type: redis
+          name: prowler-redis
+          property: port
+      - key: VALKEY_DB
+        value: "0"
+
+      # Dummy AWS credentials for build time
+      - key: AWS_ACCESS_KEY_ID
+        value: dummy_build_key
+      - key: AWS_SECRET_ACCESS_KEY
+        value: dummy_build_secret
+      - key: AWS_DEFAULT_REGION
+        value: us-east-1
+
+  # Celery Beat (scheduler for recurring scans)
+  - type: worker
+    name: prowler-beat
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    dockerCommand: /home/prowler/docker-entrypoint.sh beat
+    plan: starter
+    region: oregon
+    envVars:
+      # Django Configuration
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.django.production
+      - key: SECRET_KEY
+        sync: false
+      - key: DJANGO_SECRETS_ENCRYPTION_KEY
+        sync: false
+
+      # Database Configuration
+      - key: POSTGRES_ADMIN_USER
+        fromDatabase:
+          name: prowler-db
+          property: user
+      - key: POSTGRES_ADMIN_PASSWORD
+        fromDatabase:
+          name: prowler-db
+          property: password
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: prowler-db
+          property: database
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: prowler-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: prowler-db
+          property: port
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: prowler-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: prowler-db
+          property: password
+
+      # Redis Configuration
+      - key: VALKEY_HOST
+        fromService:
+          type: redis
+          name: prowler-redis
+          property: host
+      - key: VALKEY_PORT
+        fromService:
+          type: redis
+          name: prowler-redis
+          property: port
+      - key: VALKEY_DB
+        value: "0"
+
+      # Dummy AWS credentials for build time
+      - key: AWS_ACCESS_KEY_ID
+        value: dummy_build_key
+      - key: AWS_SECRET_ACCESS_KEY
+        value: dummy_build_secret
+      - key: AWS_DEFAULT_REGION
+        value: us-east-1
+
+  # Redis (Message broker and cache for Celery)
+  - type: redis
+    name: prowler-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+databases:
+  - name: prowler-db
+    databaseName: prowler
+    user: prowler
+    plan: starter
+    region: oregon

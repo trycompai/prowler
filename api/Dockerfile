@@ -75,6 +75,12 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 ENV PATH="/home/prowler/.local/bin:$PATH"
 
+# Set dummy AWS credentials for build time to prevent import errors
+# These are only used during poetry install and are not persisted in the runtime
+ENV AWS_ACCESS_KEY_ID=dummy_build_key \
+    AWS_SECRET_ACCESS_KEY=dummy_build_secret \
+    AWS_DEFAULT_REGION=us-east-1
+
 # Add `--no-root` to avoid installing the current project as a package
 RUN poetry install --no-root && \
     rm -rf ~/.cache/pip
