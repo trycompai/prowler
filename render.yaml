@@ -226,7 +226,6 @@ services:
     runtime: docker
     dockerfilePath: ./ui/Dockerfile
     dockerContext: ./ui
-    dockerTarget: prod
     plan: pro
     region: virginia
     envVars:
