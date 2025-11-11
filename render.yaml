@@ -11,6 +11,8 @@ services:
       # Django Configuration
       - key: DJANGO_SETTINGS_MODULE
         value: config.django.production
+      - key: DJANGO_BIND_ADDRESS
+        value: 0.0.0.0
       - key: DJANGO_PORT
         value: "8080"
       - key: DJANGO_DEBUG
