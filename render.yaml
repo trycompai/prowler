@@ -223,7 +223,7 @@ services:
   # Redis (Message broker and cache for Celery)
   - type: redis
     name: prowler-redis
-    plan: pro
+    plan: starter
     region: virginia
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
@@ -232,5 +232,5 @@ databases:
   - name: prowler-db
     databaseName: prowler
     user: prowler
-    plan: pro
+    plan: starter
     region: virginia
