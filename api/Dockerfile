@@ -75,6 +75,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 ENV PATH="/home/prowler/.local/bin:$PATH"
 
+# Configure Poetry to create virtualenv in project directory
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_NO_INTERACTION=1
+
 # Set dummy AWS credentials for build time to prevent import errors
 # These are only used during poetry install and are not persisted in the runtime
 ENV AWS_ACCESS_KEY_ID=dummy_build_key \
@@ -94,6 +98,9 @@ COPY docker-entrypoint.sh ./docker-entrypoint.sh
 # The M365 provider will still work but may have limited functionality
 
 WORKDIR /home/prowler/backend
+
+# Add the virtualenv to PATH for runtime (must be after WORKDIR)
+ENV PATH="/home/prowler/.venv/bin:$PATH"
 
 # Development image
 FROM build AS dev
