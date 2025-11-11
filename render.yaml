@@ -5,8 +5,8 @@ services:
     runtime: docker
     dockerfilePath: ./api/Dockerfile
     dockerContext: ./api
-    plan: starter
-    region: oregon
+    plan: pro
+    region: virginia
     envVars:
       # Django Configuration
       - key: DJANGO_SETTINGS_MODULE
@@ -87,8 +87,8 @@ services:
     dockerfilePath: ./api/Dockerfile
     dockerContext: ./api
     dockerCommand: /home/prowler/docker-entrypoint.sh worker
-    plan: starter
-    region: oregon
+    plan: pro
+    region: virginia
     envVars:
       # Django Configuration
       - key: DJANGO_SETTINGS_MODULE
@@ -157,8 +157,8 @@ services:
     dockerfilePath: ./api/Dockerfile
     dockerContext: ./api
     dockerCommand: /home/prowler/docker-entrypoint.sh beat
-    plan: starter
-    region: oregon
+    plan: pro
+    region: virginia
     envVars:
       # Django Configuration
       - key: DJANGO_SETTINGS_MODULE
@@ -223,8 +223,8 @@ services:
   # Redis (Message broker and cache for Celery)
   - type: redis
     name: prowler-redis
-    plan: starter
-    region: oregon
+    plan: pro
+    region: virginia
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
 
@@ -232,5 +232,5 @@ databases:
   - name: prowler-db
     databaseName: prowler
     user: prowler
-    plan: free
-    region: oregon
+    plan: pro
+    region: virginia
