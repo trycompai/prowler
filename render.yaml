@@ -256,5 +256,5 @@ databases:
   - name: prowler-db
     databaseName: prowler
     user: prowler
-    plan: standard
+    plan: basic
     region: oregon
