@@ -941,22 +941,23 @@ class UserViewSet(BaseUserViewset):
             invitation.state = Invitation.State.ACCEPTED
             invitation.save(using=MainRouter.admin_db)
         else:
-            role = Role.objects.using(MainRouter.admin_db).create(
-                name="admin",
-                tenant_id=tenant.id,
-                manage_users=True,
-                manage_account=True,
-                manage_billing=True,
-                manage_providers=True,
-                manage_integrations=True,
-                manage_scans=True,
-                unlimited_visibility=True,
-            )
-            UserRoleRelationship.objects.using(MainRouter.admin_db).create(
-                user=user,
-                role=role,
-                tenant_id=tenant.id,
-            )
+            with rls_transaction(tenant.id, using=MainRouter.admin_db):
+                role = Role.objects.using(MainRouter.admin_db).create(
+                    name="admin",
+                    tenant_id=tenant.id,
+                    manage_users=True,
+                    manage_account=True,
+                    manage_billing=True,
+                    manage_providers=True,
+                    manage_integrations=True,
+                    manage_scans=True,
+                    unlimited_visibility=True,
+                )
+                UserRoleRelationship.objects.using(MainRouter.admin_db).create(
+                    user=user,
+                    role=role,
+                    tenant_id=tenant.id,
+                )
         return Response(data=UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
