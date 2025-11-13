@@ -5,7 +5,7 @@ from django.db.models import QuerySet
 from rest_framework.permissions import BasePermission
 
 from api.db_router import MainRouter
-from api.models import Provider, Role, User
+from api.models import Provider, Role, User, UserRoleRelationship
 
 
 class Permissions(Enum):
@@ -37,17 +37,22 @@ class HasPermissions(BasePermission):
         if not tenant_id:
             return False
 
-        # Filter roles by tenant_id
-        user_roles = (
-            User.objects.using(MainRouter.admin_db)
-            .get(id=request.user.id)
-            .roles.filter(tenant_id=tenant_id)
-        )
-        if not user_roles:
+        # Query UserRoleRelationship directly through admin_db to bypass RLS
+        # Filter by both user and tenant_id, then get the roles
+        relationships = UserRoleRelationship.objects.using(MainRouter.admin_db).filter(
+            user_id=request.user.id,
+            tenant_id=tenant_id
+        ).select_related('role')
+        
+        if not relationships.exists():
             return False
 
+        # Get the first role from the relationship
+        role = relationships[0].role
+        
+        # Check all required permissions
         for perm in required_permissions:
-            if not getattr(user_roles[0], perm.value, False):
+            if not getattr(role, perm.value, False):
                 return False
 
         return True
