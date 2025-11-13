@@ -866,7 +866,8 @@ class UserViewSet(BaseUserViewset):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         if self.request.user.is_authenticated:
-            context["role"] = get_role(self.request.user)
+            tenant_id = getattr(self.request, "tenant_id", None)
+            context["role"] = get_role(self.request.user, tenant_id=tenant_id)
         return context
 
     @action(detail=False, methods=["get"], url_name="me")
@@ -1326,7 +1327,8 @@ class ProviderGroupViewSet(BaseRLSViewSet):
             self.required_permissions = [Permissions.MANAGE_PROVIDERS]
 
     def get_queryset(self):
-        user_roles = get_role(self.request.user)
+        tenant_id = getattr(self.request, "tenant_id", None)
+        user_roles = get_role(self.request.user, tenant_id=tenant_id)
         # Check if any of the user's roles have UNLIMITED_VISIBILITY
         if user_roles.unlimited_visibility:
             # User has unlimited visibility, return all provider groups
@@ -1495,7 +1497,9 @@ class ProviderViewSet(DisablePaginationMixin, BaseRLSViewSet):
             self.required_permissions = [Permissions.MANAGE_PROVIDERS]
 
     def get_queryset(self):
-        user_roles = get_role(self.request.user, tenant_id=self.request.tenant_id)
+        user_roles = get_role(
+            self.request.user, tenant_id=getattr(self.request, "tenant_id", None)
+        )
         if user_roles and user_roles.unlimited_visibility:
             # User has unlimited visibility, return all providers
             queryset = Provider.objects.filter(tenant_id=self.request.tenant_id)
@@ -1696,13 +1700,16 @@ class ScanViewSet(BaseRLSViewSet):
             self.required_permissions = [Permissions.MANAGE_SCANS]
 
     def get_queryset(self):
-        user_roles = get_role(self.request.user)
-        if user_roles.unlimited_visibility:
+        tenant_id = getattr(self.request, "tenant_id", None)
+        user_roles = get_role(self.request.user, tenant_id=tenant_id)
+        if user_roles and user_roles.unlimited_visibility:
             # User has unlimited visibility, return all scans
             queryset = Scan.objects.filter(tenant_id=self.request.tenant_id)
-        else:
+        elif user_roles:
             # User lacks permission, filter providers based on provider groups associated with the role
             queryset = Scan.objects.filter(provider__in=get_providers(user_roles))
+        else:
+            queryset = Scan.objects.none()
         return queryset.select_related("provider", "task")
 
     def get_serializer_class(self):
@@ -2181,15 +2188,18 @@ class ResourceViewSet(PaginateByPkMixin, BaseRLSViewSet):
     required_permissions = []
 
     def get_queryset(self):
-        user_roles = get_role(self.request.user)
-        if user_roles.unlimited_visibility:
+        tenant_id = getattr(self.request, "tenant_id", None)
+        user_roles = get_role(self.request.user, tenant_id=tenant_id)
+        if user_roles and user_roles.unlimited_visibility:
             # User has unlimited visibility, return all scans
             queryset = Resource.all_objects.filter(tenant_id=self.request.tenant_id)
-        else:
+        elif user_roles:
             # User lacks permission, filter providers based on provider groups associated with the role
             queryset = Resource.all_objects.filter(
                 tenant_id=self.request.tenant_id, provider__in=get_providers(user_roles)
             )
+        else:
+            queryset = Resource.all_objects.none()
 
         search_value = self.request.query_params.get("filter[search]", None)
         if search_value:
@@ -2564,15 +2574,17 @@ class FindingViewSet(PaginateByPkMixin, BaseRLSViewSet):
 
     def get_queryset(self):
         tenant_id = self.request.tenant_id
-        user_roles = get_role(self.request.user)
-        if user_roles.unlimited_visibility:
+        user_roles = get_role(self.request.user, tenant_id=tenant_id)
+        if user_roles and user_roles.unlimited_visibility:
             # User has unlimited visibility, return all findings
             queryset = Finding.all_objects.filter(tenant_id=tenant_id)
-        else:
+        elif user_roles:
             # User lacks permission, filter findings based on provider groups associated with the role
             queryset = Finding.all_objects.filter(
                 scan__provider__in=get_providers(user_roles)
             )
+        else:
+            queryset = Finding.all_objects.none()
 
         search_value = self.request.query_params.get("filter[search]", None)
         if search_value:
@@ -3104,7 +3116,8 @@ class RoleViewSet(BaseRLSViewSet):
         )
     )
     def partial_update(self, request, *args, **kwargs):
-        user_role = get_role(request.user)
+        tenant_id = getattr(request, "tenant_id", None)
+        user_role = get_role(request.user, tenant_id=tenant_id)
         # If the user is the owner of the role, the manage_account field is not editable
         if user_role and kwargs["pk"] == str(user_role.id):
             request.data["manage_account"] = str(user_role.manage_account).lower()
@@ -3362,7 +3375,8 @@ class ComplianceOverviewViewSet(BaseRLSViewSet, TaskManagementMixin):
     required_permissions = []
 
     def get_queryset(self):
-        role = get_role(self.request.user)
+        tenant_id = getattr(self.request, "tenant_id", None)
+        role = get_role(self.request.user, tenant_id=tenant_id)
         unlimited_visibility = getattr(
             role, Permissions.UNLIMITED_VISIBILITY.value, False
         )
@@ -3775,7 +3789,10 @@ class OverviewViewSet(BaseRLSViewSet):
     required_permissions = []
 
     def get_queryset(self):
-        role = get_role(self.request.user)
+        tenant_id = getattr(self.request, "tenant_id", None)
+        role = get_role(self.request.user, tenant_id=tenant_id)
+        if not role:
+            return ScanSummary.objects.none()
         providers = get_providers(role)
 
         if not role.unlimited_visibility:
@@ -4460,15 +4477,18 @@ class IntegrationViewSet(BaseRLSViewSet):
     allowed_providers = None
 
     def get_queryset(self):
-        user_roles = get_role(self.request.user)
-        if user_roles.unlimited_visibility:
+        tenant_id = getattr(self.request, "tenant_id", None)
+        user_roles = get_role(self.request.user, tenant_id=tenant_id)
+        if user_roles and user_roles.unlimited_visibility:
             # User has unlimited visibility, return all integrations
             queryset = Integration.objects.filter(tenant_id=self.request.tenant_id)
-        else:
+        elif user_roles:
             # User lacks permission, filter providers based on provider groups associated with the role
             allowed_providers = get_providers(user_roles)
             queryset = Integration.objects.filter(providers__in=allowed_providers)
             self.allowed_providers = allowed_providers
+        else:
+            queryset = Integration.objects.none()
         return queryset
 
     def get_serializer_class(self):
@@ -4535,15 +4555,17 @@ class IntegrationJiraViewSet(BaseRLSViewSet):
 
     def get_queryset(self):
         tenant_id = self.request.tenant_id
-        user_roles = get_role(self.request.user)
-        if user_roles.unlimited_visibility:
+        user_roles = get_role(self.request.user, tenant_id=tenant_id)
+        if user_roles and user_roles.unlimited_visibility:
             # User has unlimited visibility, return all findings
             queryset = Finding.all_objects.filter(tenant_id=tenant_id)
-        else:
+        elif user_roles:
             # User lacks permission, filter findings based on provider groups associated with the role
             queryset = Finding.all_objects.filter(
                 scan__provider__in=get_providers(user_roles)
             )
+        else:
+            queryset = Finding.all_objects.none()
 
         return queryset
 
