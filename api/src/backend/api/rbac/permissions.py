@@ -29,8 +29,19 @@ class HasPermissions(BasePermission):
         if not required_permissions:
             return True
 
+        # Get tenant_id from auth token
+        tenant_id = None
+        if request.auth:
+            tenant_id = request.auth.get("tenant_id")
+        
+        if not tenant_id:
+            return False
+
+        # Filter roles by tenant_id
         user_roles = (
-            User.objects.using(MainRouter.admin_db).get(id=request.user.id).roles.all()
+            User.objects.using(MainRouter.admin_db)
+            .get(id=request.user.id)
+            .roles.filter(tenant_id=tenant_id)
         )
         if not user_roles:
             return False
