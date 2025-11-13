@@ -1495,13 +1495,16 @@ class ProviderViewSet(DisablePaginationMixin, BaseRLSViewSet):
             self.required_permissions = [Permissions.MANAGE_PROVIDERS]
 
     def get_queryset(self):
-        user_roles = get_role(self.request.user)
-        if user_roles.unlimited_visibility:
+        user_roles = get_role(self.request.user, tenant_id=self.request.tenant_id)
+        if user_roles and user_roles.unlimited_visibility:
             # User has unlimited visibility, return all providers
             queryset = Provider.objects.filter(tenant_id=self.request.tenant_id)
-        else:
+        elif user_roles:
             # User lacks permission, filter providers based on provider groups associated with the role
             queryset = get_providers(user_roles)
+        else:
+            # No role found, return empty queryset
+            queryset = Provider.objects.none()
         return queryset.select_related("secret").prefetch_related("provider_groups")
 
     def get_serializer_class(self):

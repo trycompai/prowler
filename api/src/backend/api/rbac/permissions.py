@@ -58,13 +58,29 @@ class HasPermissions(BasePermission):
         return True
 
 
-def get_role(user: User) -> Optional[Role]:
+def get_role(user: User, tenant_id: Optional[str] = None) -> Optional[Role]:
     """
-    Retrieve the first role assigned to the given user.
+    Retrieve the first role assigned to the given user, optionally filtered by tenant_id.
+
+    Args:
+        user: The user to get the role for
+        tenant_id: Optional tenant_id to filter roles by
 
     Returns:
-        The user's first Role instance if the user has any roles, otherwise None.
+        The user's first Role instance if the user has any roles for the tenant, otherwise None.
     """
+    if tenant_id:
+        # Query UserRoleRelationship directly through admin_db to bypass RLS
+        relationships = UserRoleRelationship.objects.using(MainRouter.admin_db).filter(
+            user_id=user.id,
+            tenant_id=tenant_id
+        ).select_related('role')
+        
+        if relationships.exists():
+            return relationships[0].role
+        return None
+    
+    # Fallback to original behavior if no tenant_id provided
     return user.roles.first()
 
 

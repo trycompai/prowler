@@ -5,7 +5,7 @@ services:
     runtime: docker
     dockerfilePath: ./api/Dockerfile
     dockerContext: ./api
-    plan: pro
+    plan: pro max
     region: oregon
     envVars:
       # Django Configuration
