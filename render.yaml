@@ -23,6 +23,8 @@ services:
         generateValue: true
       - key: DJANGO_SECRETS_ENCRYPTION_KEY
         generateValue: true
+      - key: DJANGO_WORKERS
+        value: "2"
 
       # Database Configuration (admin user for migrations)
       - key: POSTGRES_ADMIN_USER
